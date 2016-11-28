@@ -35,11 +35,23 @@ static int sumAudio(short int *audio, int numberOfSamples) {
     return sum;
 }
 
-latencyMeasurer::latencyMeasurer() : measurementState(idle), nextMeasurementState(idle), samplesElapsed(0), sineWave(0), sum(0), threshold(0), state(0), samplerate(0), latencyMs(0), buffersize(0) {
+latencyMeasurer::latencyMeasurer(int _maxMeasurements) :
+                    measurementState(idle),
+                    nextMeasurementState(idle),
+                    samplesElapsed(0),
+                    sineWave(0),
+                    sum(0),
+                    threshold(0),
+                    state(0),
+                    samplerate(0),
+                    latencyMs(0),
+                    buffersize(0),
+                    burstFreqHz(19000.0f),
+                    maxMesausements(_maxMeasurements) {
 }
 
 void latencyMeasurer::toggle() {
-    if ((state == -1) || ((state > 0) && (state < 11))) { // stop
+    if ((state == -1) || ((state > 0) && (state < maxMesausements + 1))) { // stop
         state = 0;
         nextMeasurementState = idle;
     } else { // start
@@ -115,10 +127,10 @@ void latencyMeasurer::processInput(short int *audio, int _samplerate, int number
 
                     if (max / min > 2.0f) { // Dispersion error.
                         latencyMs = 0;
-                        state = 10;
+                        state = maxMesausements;
                         measurementState = nextMeasurementState = idle;
-                    } else if (state == 10) { // Final result.
-                        latencyMs = sum * 0.1f;
+                    } else if (state == maxMesausements) { // Final result.
+                        latencyMs = sum / maxMesausements;
                         measurementState = nextMeasurementState = idle;
                     } else { // Next step.
                         latencyMs = roundTripLatencyMs[state - 1];
@@ -159,7 +171,7 @@ void latencyMeasurer::processOutput(short int *audio) {
 
     if (rampdec < 0.0f) memset(audio, 0, buffersize * 4); // Output silence.
     else { // Output sine wave.
-        float ramp = 1.0f, mul = (2.0f * float(M_PI) * 1000.0f) / float(samplerate); // 1000 Hz
+        float ramp = 1.0f, mul = (2.0f * float(M_PI) * burstFreqHz) / float(samplerate); // 1000 Hz
         int n = buffersize;
         while (n) {
             n--;

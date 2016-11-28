@@ -38,7 +38,8 @@ namespace android {
         leftInput = rightInput = leftOutput = rightOutput = NULL;
         jackClient = NULL;
         stereo = (short int *)malloc(4096 * 4); // an interleaved buffer
-        measurer = new latencyMeasurer();
+        int maxMeasurements = 1;  // set to match {@code MainActivity#MAX_MEASUREMENTS}
+        measurer = new latencyMeasurer(maxMeasurements);
     }
 
     sapaClient::~sapaClient() {

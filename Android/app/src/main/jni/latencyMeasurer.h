@@ -16,7 +16,7 @@ public:
     int latencyMs;
     int buffersize;
 
-    latencyMeasurer();
+    latencyMeasurer(int maxMeasurements);
     void processInput(short int *audio, int samplerate, int numberOfSamples);
     void processOutput(short int *audio);
     void toggle();
@@ -24,6 +24,8 @@ public:
 
 private:
     measurementStates measurementState, nextMeasurementState;
+    const int maxMesausements;
+    const float burstFreqHz;
     float roundTripLatencyMs[10], sineWave, rampdec;
     int sum, samplesElapsed;
     short int threshold;

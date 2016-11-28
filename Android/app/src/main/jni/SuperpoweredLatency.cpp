@@ -159,7 +159,12 @@ static void outputCallback(SLAndroidSimpleBufferQueueItf caller, void *pContext)
 
 // Ugly Java-native bridges - JNI, that is.
 extern "C" {
-    JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_SuperpoweredLatency(JNIEnv *javaEnvironment, jobject self, jlong _samplerate, jlong _buffersize);
+    JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_SuperpoweredLatency(
+        JNIEnv *javaEnvironment,
+        jobject self,
+        jlong _samplerate,
+        jlong _buffersize,
+        jint _maxMeasurements);
     JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_toggleMeasurer(JNIEnv *javaEnvironment, jobject self);
     JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_togglePassThrough(JNIEnv *javaEnvironment, jobject self);
     JNIEXPORT jint Java_com_superpowered_superpoweredlatency_MainActivity_getState(JNIEnv *javaEnvironment, jobject self);
@@ -178,10 +183,15 @@ JNIEXPORT jint Java_com_superpowered_superpoweredlatency_MainActivity_getBuffers
 JNIEXPORT jboolean Java_com_superpowered_superpoweredlatency_MainActivity_getSuperpowered(JNIEnv *javaEnvironment, jobject self) { return superpoweredIO; }
 
 // Set up audio and measurer.
-JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_SuperpoweredLatency(JNIEnv *javaEnvironment, jobject self, jlong _samplerate, jlong _buffersize) {
+JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_SuperpoweredLatency(
+        JNIEnv *javaEnvironment,
+        jobject self,
+        jlong _samplerate,
+        jlong _buffersize,
+        jint _maxMeasurements) {
     static const SLboolean requireds[2] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE };
 
-    measurer = new latencyMeasurer();
+    measurer = new latencyMeasurer(_maxMeasurements);
     pthread_mutex_init(&mutex, NULL);
     samplerate = _samplerate;
     // If buffersize is negative, then we have Android 4.4 or higher.

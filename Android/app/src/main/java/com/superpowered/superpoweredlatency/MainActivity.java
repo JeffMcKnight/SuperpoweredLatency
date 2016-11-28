@@ -45,6 +45,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class MainActivity extends ActionBarActivity {
+    private static final int MAX_MEASUREMENTS = 1;
     TextView button = null;
     TextView infoView = null;
     TextView status = null;
@@ -118,6 +119,7 @@ public class MainActivity extends ActionBarActivity {
         network = (TextView)findViewById(R.id.network);
         progress = (ProgressBar)findViewById(R.id.progress);
         website = (TextView)findViewById(R.id.website);
+        progress.setMax(MAX_MEASUREMENTS);
 
         if (Build.VERSION.SDK_INT >= 21) { // Check if there is something in the headphone socket.
             IntentFilter filter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
@@ -181,7 +183,10 @@ public class MainActivity extends ActionBarActivity {
             if (Build.VERSION.SDK_INT >= 19) buffersizeString = "-" + buffersizeString; // Indicate Android 4.4 or higher with negating the buffer size.
 
             // Call the native lib to set up.
-            SuperpoweredLatency(Integer.parseInt(samplerateString), Integer.parseInt(buffersizeString));
+            SuperpoweredLatency(
+                    Integer.parseInt(samplerateString),
+                    Integer.parseInt(buffersizeString),
+                    MAX_MEASUREMENTS);
         } else {
             startService(new Intent(this, SapaStopService.class));
             sapaClient.activate();
@@ -232,7 +237,7 @@ public class MainActivity extends ActionBarActivity {
                 button.setText("Start Latency Test");
 
             // Result or error.
-            } else if (measurerState > 10) {
+            } else if (measurerState > MAX_MEASUREMENTS) {
                 if (_latencyMs == 0) {
                     status.setText("Dispersion too big, please try again.");
                     button.setText("Restart Test");
@@ -295,7 +300,7 @@ public class MainActivity extends ActionBarActivity {
                 if (_latencyMs < 0) status.setText("The environment is too loud!");
                 else {
                     status.setText(_latencyMs + " ms");
-                    progress.setProgress((measurerState - 1) * 10);
+                    progress.setProgress((measurerState - 1));
                 }
             }
         }
@@ -352,7 +357,7 @@ public class MainActivity extends ActionBarActivity {
         startActivity(settingsIntent);
     }
 
-    private native void SuperpoweredLatency(long samplerate, long buffersize);
+    private native void SuperpoweredLatency(long samplerate, long buffersize, int maxMeasurements);
     private native void toggleMeasurer();
     private native int getState();
     private native int getLatencyMs();
