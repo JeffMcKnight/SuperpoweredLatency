@@ -1,42 +1,101 @@
-apply plugin: 'com.android.application'
+apply plugin: 'com.android.model.application'
 
-android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.1"
+Properties properties = new Properties()
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
+def superpowered_sdk_path = properties.getProperty('superpowered.dir')
+System.out.println("superpowered_sdk_path: " + superpowered_sdk_path);
 
-    defaultConfig {
-        applicationId "com.superpowered.superpoweredlatency"
-        minSdkVersion 11
-        targetSdkVersion 23
-        versionCode 3
-        versionName "1.5"
+model {
+    android {
+        compileSdkVersion 23
+        buildToolsVersion "23.0.3"
 
-        sourceSets.main {
-            jniLibs.srcDir 'src/main/libs'
-            jni.srcDirs = []
+        defaultConfig.with {
+            applicationId "com.superpowered.superpoweredlatency"
+            minSdkVersion.apiLevel = 11
+            targetSdkVersion.apiLevel = 23
+            versionCode 3
+            versionName "1.5"
+
+        }
+
+        buildTypes {
+            release {
+                minifyEnabled false
+                proguardFiles.add file('proguard.cfg')
+            }
         }
     }
 
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+    android.ndk { // your application's native layer parameters
+        moduleName "SuperpoweredLatency"
+        platformVersion = 16
+        stl = "c++_static"
+
+        // full optimization, char data type is signed
+        CFlags.addAll([
+                "-I${project.rootDir}/app/src/main/jni".toString()
+                , "-O3"
+                , "-fsigned-char"
+        ])
+
+        cppFlags.addAll([
+                "-I${project.rootDir}/app/src/main/jni".toString(),
+                "-fsigned-char",
+                "-I${superpowered_sdk_path}".toString()
+        ])
+
+        // load these libraries: log, android, OpenSL ES (for audio)
+        ldLibs.addAll(["log", "android", "OpenSLES"])
+
+        // these platforms cover 99% percent of all Android devices
+        abiFilters.addAll([
+                "armeabi-v7a",
+                "arm64-v8a",
+                "x86",
+                "x86_64"
+        ])
+    }
+
+    repositories {
+        libs(PrebuiltLibraries) {
+            superpowered { // this is where you declare the "superpowered" static library
+                headers.srcDir "${superpowered_sdk_path}"
+                binaries.withType(StaticLibraryBinary) { // attaching library files to each platform
+                    def platformName = targetPlatform.getName()
+                    if (platformName == "armeabi-v7a") {
+                        staticLibraryFile = file("${superpowered_sdk_path}/libSuperpoweredAndroidARM.a")
+                    } else if (platformName == "arm64-v8a") {
+                        staticLibraryFile = file("${superpowered_sdk_path}/libSuperpoweredAndroidARM64.a")
+                    } else if (platformName == "x86") {
+                        staticLibraryFile = file("${superpowered_sdk_path}/libSuperpoweredAndroidX86.a")
+                    } else if (platformName == "x86_64") {
+                        staticLibraryFile = file("${superpowered_sdk_path}/libSuperpoweredAndroidX86_64.a")
+                    }
+                    if (staticLibraryFile != null){
+                        System.out.println("PrebuiltLibraries"
+                                +" -- platformName: " + platformName
+                                +"\n     -- staticLibraryFile: " + staticLibraryFile
+                        );
+                    }
+                }
+            }
         }
     }
-    task ndkBuild(type: Exec) {
-        Properties properties = new Properties()
-        properties.load(project.rootProject.file('local.properties').newDataInputStream())
-        def ndkDir = properties.getProperty('ndk.dir')
-        commandLine "$ndkDir/ndk-build", '-B', '-C', file('src/main/jni').absolutePath
+
+    android.sources.main.jni {
+        source {
+            include "PulseEnhancer.cpp"
+            include "SuperpoweredLatency.cpp"
+            include "latencyMeasurer.cpp"
+            srcDir "${superpowered_sdk_path}"
+            srcDir "jni"
+        }
+        dependencies {
+            library "superpowered" linkage "static" // this is where you attach the "superpowered" static library to your app
+        }
     }
 
-    lintOptions {
-        abortOnError false
-    }
-
-    tasks.withType(JavaCompile) {
-        compileTask -> compileTask.dependsOn ndkBuild
-    }
 }
 
 dependencies {

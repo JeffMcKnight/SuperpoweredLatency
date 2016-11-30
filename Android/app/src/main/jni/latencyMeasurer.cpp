@@ -35,7 +35,7 @@ static int sumAudio(short int *audio, int numberOfSamples) {
     return sum;
 }
 
-latencyMeasurer::latencyMeasurer(int _maxMeasurements) :
+latencyMeasurer::latencyMeasurer(int _maxMeasurements, int _samplerate) :
                     measurementState(idle),
                     nextMeasurementState(idle),
                     samplesElapsed(0),
@@ -43,11 +43,12 @@ latencyMeasurer::latencyMeasurer(int _maxMeasurements) :
                     sum(0),
                     threshold(0),
                     state(0),
-                    samplerate(0),
+                    samplerate(_samplerate),
                     latencyMs(0),
                     buffersize(0),
                     burstFreqHz(19000.0f),
                     maxMesausements(_maxMeasurements) {
+        pulseEnhancer = PulseEnhancer::create(samplerate, burstFreqHz);
 }
 
 void latencyMeasurer::toggle() {
@@ -102,12 +103,13 @@ void latencyMeasurer::processInput(short int *audio, int _samplerate, int number
 
         // Playing sine wave and listening if it comes back.
         case playing_and_listening: {
-            int averageInputValue = sumAudio(audio, numberOfSamples) / numberOfSamples;
+            short *input = new short[numberOfSamples];;
+            pulseEnhancer->processForOpenAir(audio, input, (SLuint32)numberOfSamples, 2);
+            int averageInputValue = sumAudio(input, numberOfSamples) / numberOfSamples;
             rampdec = 0.0f;
 
             if (averageInputValue > threshold) { // The signal is above the threshold, so our sine wave comes back on the input.
                 int n = 0;
-                short int *input = audio;
                 while (n < numberOfSamples) { // Check the location when it became loud enough.
                     if (*input++ > threshold) break;
                     if (*input++ > threshold) break;
@@ -151,6 +153,7 @@ void latencyMeasurer::processInput(short int *audio, int _samplerate, int number
                     latencyMs = -1;
                 };
             };
+            delete[] input;
         }; break;
 
         case passthrough:

@@ -162,7 +162,7 @@ extern "C" {
     JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_SuperpoweredLatency(
         JNIEnv *javaEnvironment,
         jobject self,
-        jlong _samplerate,
+        jint _samplerate,
         jlong _buffersize,
         jint _maxMeasurements);
     JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_toggleMeasurer(JNIEnv *javaEnvironment, jobject self);
@@ -186,12 +186,12 @@ JNIEXPORT jboolean Java_com_superpowered_superpoweredlatency_MainActivity_getSup
 JNIEXPORT void Java_com_superpowered_superpoweredlatency_MainActivity_SuperpoweredLatency(
         JNIEnv *javaEnvironment,
         jobject self,
-        jlong _samplerate,
+        jint _samplerate,
         jlong _buffersize,
         jint _maxMeasurements) {
     static const SLboolean requireds[2] = { SL_BOOLEAN_TRUE, SL_BOOLEAN_FALSE };
 
-    measurer = new latencyMeasurer(_maxMeasurements);
+    measurer = new latencyMeasurer(_maxMeasurements, _samplerate);
     pthread_mutex_init(&mutex, NULL);
     samplerate = _samplerate;
     // If buffersize is negative, then we have Android 4.4 or higher.

@@ -1,6 +1,8 @@
 #ifndef Header_latencyMeasurer
 #define Header_latencyMeasurer
 
+#include "PulseEnhancer.h"
+
 typedef enum measurementStates {
     measure_average_loudness_for_1_sec,
     playing_and_listening,
@@ -16,7 +18,7 @@ public:
     int latencyMs;
     int buffersize;
 
-    latencyMeasurer(int maxMeasurements);
+    latencyMeasurer(int maxMeasurements, int _samplerate);
     void processInput(short int *audio, int samplerate, int numberOfSamples);
     void processOutput(short int *audio);
     void toggle();
@@ -25,10 +27,11 @@ public:
 private:
     measurementStates measurementState, nextMeasurementState;
     const int maxMesausements;
-    const float burstFreqHz;
+    float burstFreqHz;
     float roundTripLatencyMs[10], sineWave, rampdec;
     int sum, samplesElapsed;
     short int threshold;
+    PulseEnhancer *pulseEnhancer;
 };
 
 #endif
