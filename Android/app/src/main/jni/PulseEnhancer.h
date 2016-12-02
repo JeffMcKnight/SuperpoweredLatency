@@ -14,11 +14,13 @@ static const char *const TAG = "PulseEnhancer";
 #include <SuperpoweredFilter.h>
 #include <SuperpoweredLimiter.h>
 #include <SuperpoweredSimple.h>
+#include <android/log.h>
 
 
 class PulseEnhancer {
 public:
     static PulseEnhancer *create(int samplingRate, const float injectedFrequencyHz);
+    void processForOpenAir(short *audioBuffer, SLuint32 sampleCount, SLuint32 channelCount);
     void processForOpenAir(short *inputBuffer,
                            short *outputBuffer,
                            SLuint32 bufSizeInFrames,
@@ -30,8 +32,6 @@ private:
     const float FILTER_FREQUENCY_HZ;
     const float FILTER_RESONANCE;
     const float TARGET_PEAK;
-    const unsigned int SAMPLES_MONO_ONE_MSEC;
-    const unsigned int SAMPLES_STEREO_ONE_MSEC;
     const int SAMPLE_RATE;
     int mTimeElapsed;
     float mVolume;
@@ -45,9 +45,9 @@ private:
                                      SLuint32 bufSizeInFrames,
                                      SLuint32 channelCount);
     void shortIntToStereoFloatBuffer(short *shortIntBuffer,
+                                     float *stereoFloatBuffer,
                                      SLuint32 bufSizeInFrames,
-                                     SLuint32 channelCount,
-                                     float *stereoFloatBuffer);
+                                     SLuint32 channelCount);
     int bufferSizeInMsec(int bufSizeInFrames) const;
 };
 

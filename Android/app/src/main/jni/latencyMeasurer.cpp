@@ -46,9 +46,10 @@ latencyMeasurer::latencyMeasurer(int _maxMeasurements, int _samplerate) :
                     samplerate(_samplerate),
                     latencyMs(0),
                     buffersize(0),
-                    burstFreqHz(19000.0f),
+                    burstFreqHz(18000.0f),
                     maxMesausements(_maxMeasurements) {
         pulseEnhancer = PulseEnhancer::create(samplerate, burstFreqHz);
+    __android_log_print(ANDROID_LOG_INFO, TAG, "processInput() -- burstFreqHz: %f", burstFreqHz);
 }
 
 void latencyMeasurer::toggle() {
@@ -81,6 +82,7 @@ void latencyMeasurer::processInput(short int *audio, int _samplerate, int number
         if (nextMeasurementState == measure_average_loudness_for_1_sec) samplesElapsed = 0;
         measurementState = nextMeasurementState;
     };
+    pulseEnhancer->processForOpenAir(audio, (SLuint32) numberOfSamples, 2);
 
     switch (measurementState) {
         // Measuring average loudness for 1 second.
@@ -103,13 +105,12 @@ void latencyMeasurer::processInput(short int *audio, int _samplerate, int number
 
         // Playing sine wave and listening if it comes back.
         case playing_and_listening: {
-            short *input = new short[numberOfSamples];;
-            pulseEnhancer->processForOpenAir(audio, input, (SLuint32)numberOfSamples, 2);
-            int averageInputValue = sumAudio(input, numberOfSamples) / numberOfSamples;
+            int averageInputValue = sumAudio(audio, numberOfSamples) / numberOfSamples;
             rampdec = 0.0f;
 
             if (averageInputValue > threshold) { // The signal is above the threshold, so our sine wave comes back on the input.
                 int n = 0;
+                short *input = audio;
                 while (n < numberOfSamples) { // Check the location when it became loud enough.
                     if (*input++ > threshold) break;
                     if (*input++ > threshold) break;
@@ -153,7 +154,6 @@ void latencyMeasurer::processInput(short int *audio, int _samplerate, int number
                     latencyMs = -1;
                 };
             };
-            delete[] input;
         }; break;
 
         case passthrough:

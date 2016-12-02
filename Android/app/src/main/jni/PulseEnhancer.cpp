@@ -3,7 +3,6 @@
 //
 
 #include "PulseEnhancer.h"
-#include "/Users/Shared/Library/Android/sdk/ndk-bundle/platforms/android-16/arch-x86/usr/include/android/log.h"
 
 /**
  * Constructor to initialize fields and constants with default values.
@@ -14,14 +13,12 @@
  */
 PulseEnhancer::PulseEnhancer(int sampleRate, const float injectedFrequencyHz) :
         SAMPLE_RATE(sampleRate),
-        SAMPLES_MONO_ONE_MSEC((unsigned int) (sampleRate / 1000)),
-        SAMPLES_STEREO_ONE_MSEC(2 * SAMPLES_MONO_ONE_MSEC),
         mVolume(1.0F),
         mTimeElapsed(0),
         FILTER_FREQUENCY_HZ(injectedFrequencyHz),
         FILTER_RESONANCE(2.0f),
         TARGET_PEAK(1.0f) {
-    __android_log_print(ANDROID_LOG_INFO, TAG, "::create -- SAMPLE_RATE: %d -- SAMPLES_MONO_ONE_MSEC: %d -- SAMPLES_STEREO_ONE_MSEC: %d", SAMPLE_RATE, SAMPLES_MONO_ONE_MSEC, SAMPLES_STEREO_ONE_MSEC);
+    __android_log_print(ANDROID_LOG_INFO, TAG, "::create -- SAMPLE_RATE: %d", SAMPLE_RATE);
 }
 
 /**
@@ -33,6 +30,13 @@ PulseEnhancer *PulseEnhancer::create(int samplingRate, const float injectedFrequ
     enhancer->createFilter(static_cast<unsigned int>(samplingRate));
     enhancer->createLimiter(static_cast<unsigned int>(samplingRate));
     return enhancer;
+}
+
+/**
+ * Overloaded version that uses the same buffer for input and output
+ */
+void PulseEnhancer::processForOpenAir(short *audioBuffer, SLuint32 sampleCount, SLuint32 channelCount) {
+    processForOpenAir(audioBuffer, audioBuffer, sampleCount, channelCount);
 }
 
 /**
@@ -50,7 +54,7 @@ void PulseEnhancer::processForOpenAir(short *inputBuffer,
     // Convert the raw 16 bit PCM buffer to stereo floating point;
     unsigned int bufferSizeInSamples = channelCount * bufSizeInFrames;
     float *stereoBuffer = new float[bufferSizeInSamples];
-    shortIntToStereoFloatBuffer(inputBuffer, bufSizeInFrames, channelCount, stereoBuffer);
+    shortIntToStereoFloatBuffer(inputBuffer, stereoBuffer, bufSizeInFrames, channelCount);
     //  Filter the mic input to reject ambient noise get a cleaner pulse
     mFilter->process(stereoBuffer, stereoBuffer, bufSizeInFrames);
     // Convert buffer back to 16 bit PCM
@@ -95,10 +99,8 @@ void PulseEnhancer::stereoFloatToShortIntBuffer(float *stereoInputBuffer,
  * methods expect stereo float frames
  * TODO: do this without using so many buffer resources
 */
-void PulseEnhancer::shortIntToStereoFloatBuffer(short *shortIntBuffer,
-                                                SLuint32 bufSizeInFrames,
-                                                SLuint32 channelCount,
-                                                float *stereoFloatBuffer) {
+void PulseEnhancer::shortIntToStereoFloatBuffer(short *shortIntBuffer, float *stereoFloatBuffer,
+                                                SLuint32 bufSizeInFrames, SLuint32 channelCount) {
     if (channelCount == 1){
         float *monoFloatBuffer = new float[channelCount * bufSizeInFrames];
         // Convert mono 16bit buffer to mono floating point buffer
